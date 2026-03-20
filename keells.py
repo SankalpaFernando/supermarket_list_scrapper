@@ -117,7 +117,7 @@ def scrape(category):
                     # This takes everything after the "/"
                     unit = price_str.split("/")[-1].strip()
 
-                    sync_to_cloud(category,name,price,unit,img_url,"keells")
+                    sync_to_cloud(category,name,price,unit,"1",img_url,"keells")
                     
                     # Print as we go
                     print(f"Extracted: {name} | {price}")
