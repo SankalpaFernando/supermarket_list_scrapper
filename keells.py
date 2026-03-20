@@ -1,169 +1,93 @@
-import time
-import csv
+import time # Add this to your imports at the top
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 
-def scrape_keells():
-    # 1. Native Selenium Setup
-    options = Options()
-    options.add_argument("--start-maximized")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--no-sandbox")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+# Set up Chrome options to keep the browser open
+chrome_options = Options()
+chrome_options.add_experimental_option("detach", True)
+
+driver = webdriver.Chrome(options=chrome_options)
+
+try:
+    print("Navigating to the website...")
+    driver.get("https://www.keellssuper.com/fresh-vegetables")
+
+    wait = WebDriverWait(driver, 200)
     
-    print("Launching Chrome...")
-    driver = webdriver.Chrome(options=options)
-    wait = WebDriverWait(driver, 15)
-    short_wait = WebDriverWait(driver, 5)
+    print("Waiting for Ambarella product card to load...")
+    ambarella_element = wait.until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//div[contains(@class, 'product-card-nameV2') and contains(text(), 'Ambarella')]")
+        )
+    )
+    print("Ambarella card loaded.")
 
-    base_url = "https://www.keellssuper.com"
-    filename = "keells_products.csv"
-    total_products_scraped = 0
+    print("Scrolling to find the 'View All' button...")
+    view_all_button = wait.until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//button[@type='button' and contains(@class, 'btn-success') and contains(text(), 'View All')]")
+        )
+    )
+    
+    driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", view_all_button)
+    print("found it")
 
-    # 2. Prepare CSV file
-    with open(filename, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=["Category", "Product Name", "Price", "Image URL"])
-        writer.writeheader()
+    # 5. Click the button
+    view_all_button.click()
+    print("Clicked 'View All'. Waiting for new items to load...")
 
-    try:
-        print(f"Loading {base_url} to fetch categories...")
-        driver.get(base_url)
-        time.sleep(2) # Initial load buffer
-        
-        # Open the main category menu to count how many categories exist
-        category_menu_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".category-ui")))
-        category_menu_btn.click()
-        time.sleep(1)
+    # 6. Give the DOM a moment to process the click and start loading new content
+    time.sleep(3) 
 
-        categories = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "li[id^='dep_id_']")))
-        num_categories = len(categories)
-        print(f"Found {num_categories} categories. Starting extraction...\n")
+    # Wait until the product cards are present on the new page
+    wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "product-card-containerV2")))
+    
+    # 7. Find all the product cards on the screen
+    product_cards = driver.find_elements(By.CLASS_NAME, "product-card-containerV2")
+    print(f"Found {len(product_cards)} products. Extracting data...\n")
 
-        # 3. Iterate over each category by index (prevents StaleElementReferenceException)
-        for i in range(num_categories):
-            # Ensure we are on the base page before starting a new category
-            if driver.current_url != base_url:
-                driver.get(base_url)
-                time.sleep(2)
+    extracted_products = []
 
-            # Re-open the category menu
-            try:
-                category_menu_btn = short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".category-ui")))
-                driver.execute_script("arguments[0].click();", category_menu_btn)
-                time.sleep(1)
-            except Exception:
-                pass # Already open or visible
+    # 8. Loop through each card and extract specific data
+    for card in product_cards:
+        try:
+            # Extract Name
+            name_element = card.find_element(By.CLASS_NAME, "product-card-nameV2")
+            name = name_element.text.strip()
             
-            # Find the specific category in the list
-            categories = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "li[id^='dep_id_']")))
-            category_element = categories[i]
+            # Extract Price
+            price_element = card.find_element(By.CLASS_NAME, "product-card-final-priceV2")
+            # Using replace('\n', ' ') in case the HTML formats the price and " / KG" on different lines
+            price = price_element.text.strip().replace('\n', ' ') 
             
-            # Extract category name for the CSV column
-            try:
-                category_name = category_element.text.replace('\n', ' ').strip()
-                if not category_name:
-                    category_name = f"Category_{i+1}"
-            except Exception:
-                category_name = f"Category_{i+1}"
+            # Extract Image URL
+            img_element = card.find_element(By.TAG_NAME, "img")
+            img_url = img_element.get_attribute("src")
+            
+            # Store it in a dictionary
+            product_data = {
+                "name": name,
+                "price": price,
+                "image_url": img_url
+            }
+            extracted_products.append(product_data)
+            
+            # Print as we go
+            print(f"Extracted: {name} | {price}")
+            
+        except Exception as e:
+            # If one card is missing a piece of data, we catch the error here 
+            # so it skips that specific card instead of crashing the whole script
+            print(f"Skipped a card due to missing data.")
 
-            print(f"--- Scraping Category {i + 1}/{num_categories}: {category_name} ---")
+    print("\nExtraction complete!")
+    # You now have all data inside the `extracted_products` list of dictionaries!
 
-            # Click the main category
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", category_element)
-            time.sleep(0.5)
-            driver.execute_script("arguments[0].click();", category_element)
+except Exception as e:
+    print(f"An error occurred: {e}")
 
-            # Click the "All [Category Name]" sub-category option
-            try:
-                all_option = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(@class, 'sub-cat-span') and contains(text(), 'All')]")))
-                driver.execute_script("arguments[0].click();", all_option)
-            except Exception:
-                print(f"    Could not find or click 'All' option for {category_name}. Skipping.")
-                continue
-
-            # Wait for and click the "View All" button if it exists
-            try:
-                view_all_btn = short_wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-success")))
-                if "View All" in view_all_btn.text:
-                    driver.execute_script("arguments[0].click();", view_all_btn)
-                    time.sleep(2)
-            except Exception:
-                pass # Proceed normally if there is no "View All" button
-
-            page_number = 1
-
-            # 4. Pagination Loop
-            while True:
-                print(f"  -> Scraping Page {page_number}...")
-                
-                # Wait for the product cards to load in the DOM
-                try:
-                    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".product-card-image-containerV2")))
-                    time.sleep(2) # Brief buffer to allow images/prices to render
-                except Exception:
-                    print("     No products found or took too long to load. Moving to next category.")
-                    break
-
-                # Step A: Extract products on the current page
-                product_names = driver.find_elements(By.CSS_SELECTOR, ".product-card-nameV2")
-                product_prices = driver.find_elements(By.CSS_SELECTOR, ".product-card-final-priceV2")
-                product_images = driver.find_elements(By.CSS_SELECTOR, ".product-card-image-containerV2-image")
-                
-                products_data = []
-
-                # Zip the elements together to process them concurrently
-                for name_el, price_el, img_el in zip(product_names, product_prices, product_images):
-                    try:
-                        name = name_el.text.strip()
-                        price = price_el.text.replace('\n', ' ').strip() # Keep 'Rs X.XX / KG' format clean
-                        img_url = img_el.get_attribute("src")
-
-                        if name and price:
-                            products_data.append({
-                                "Category": category_name,
-                                "Product Name": name,
-                                "Price": price,
-                                "Image URL": img_url
-                            })
-                    except Exception:
-                        continue # Skip malformed product entries
-
-                # Append the current page's data to the CSV immediately
-                if products_data:
-                    with open(filename, 'a', newline='', encoding='utf-8') as file:
-                        writer = csv.DictWriter(file, fieldnames=["Category", "Product Name", "Price", "Image URL"])
-                        writer.writerows(products_data)
-                    total_products_scraped += len(products_data)
-                    print(f"     Saved {len(products_data)} products.")
-
-                # Step B: Handle Pagination
-                try:
-                    next_button = driver.find_element(By.CSS_SELECTOR, ".pagination-wrapper .page-number-button-arrow")
-                    
-                    # Check if the button is disabled or we've hit the end
-                    if not next_button.is_enabled() or "disabled" in next_button.get_attribute("class"):
-                        print("     Reached the last page of this category.")
-                        break
-                        
-                    # Click next using JS to bypass overlays
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_button)
-                    time.sleep(1)
-                    driver.execute_script("arguments[0].click();", next_button)
-                    
-                    page_number += 1
-                    time.sleep(3) # Wait for network request for new page data
-                    
-                except Exception:
-                    print("     Pagination error or no more pages.")
-                    break
-
-    finally:
-        driver.quit()
-        print(f"\nScraping complete! Total products scraped across all categories: {total_products_scraped}")
-        print(f"Data saved to {filename}")
-
-if __name__ == "__main__":
-    scrape_keells()
+finally:
+    pass
