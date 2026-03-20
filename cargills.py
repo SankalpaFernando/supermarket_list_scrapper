@@ -4,7 +4,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
-import csv
+from sync import sync_to_cloud
+import re
 
 def scrape_cargills():
     options = Options()
@@ -37,11 +38,7 @@ def scrape_cargills():
         print(f"Found {len(category_urls)} categories. Starting extraction...\n")
         
         # Prepare CSV file
-        filename = "cargills_products_02.csv"
-        with open(filename, 'w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=["Category", "Product Name", "Price", "Image URL"])
-            writer.writeheader()
-        
+       
         total_products_scraped = 0
         
         # 2. Iterate over each category URL
@@ -80,10 +77,23 @@ def scrape_cargills():
                         # We split by newline or space to grab just the actual price
                         raw_price = price_el.text.split("MRP")[0].strip()
                         price = " ".join(raw_price.split())
+
+
                         
                         # Image URL
                         img_el = prod.find_element(By.CSS_SELECTOR, "div.cargillProdNeedImg img")
                         img_url = img_el.get_attribute("src")
+
+                        unit_el = prod.find_element(By.CSS_SELECTOR, "button.dropbtn1")
+                        raw_text = unit_el.text.strip() # Example: "500.00 g" or "1 kg"
+                        
+                        match = re.match(r"([\d\.,]+)\s*([a-zA-Z]+)", raw_text)
+                        if match:
+                            quantity = match.group(1) # "500.00"
+                            unit = match.group(2)     # "g"
+                        else:
+                            # Fallback just in case it's a weird string like "1 Pack"
+                            quantity = raw_text
                         
                         products_data.append({
                             "Category": category_name,
@@ -91,17 +101,15 @@ def scrape_cargills():
                             "Price": price,
                             "Image URL": img_url
                         })
+
+                        sync_to_cloud(category_name,name,price,unit,quantity,img_url,"cargills")
+
+
                     except Exception as e:
                         # Skip if a product is malformed
                         continue
                 
-                # Append the current page's data to the CSV immediately so we don't lose progress
-                if products_data:
-                    with open(filename, 'a', newline='', encoding='utf-8') as file:
-                        writer = csv.DictWriter(file, fieldnames=["Category", "Product Name", "Price", "Image URL"])
-                        writer.writerows(products_data)
-                    total_products_scraped += len(products_data)
-                    print(f"     Saved {len(products_data)} products.")
+
                 
                 # Step B: Handle Pagination
                 try:

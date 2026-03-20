@@ -1,9 +1,9 @@
 from conn import model,index
 import re
 
-def sync_to_cloud(category, name, price, unit, img_url,market):
+def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
     # Create a unique ID
-    prod_id = f"{category.lower().replace(' ', '-')}-{name.lower().replace(' ', '-')}"
+    prod_id = f"{category.lower().replace(' ', '-')}-{name.lower().replace(' ', '-')}-{market}"
 
     prod_id = prod_id.encode("ascii", "ignore").decode("ascii")
     
@@ -28,6 +28,7 @@ def sync_to_cloud(category, name, price, unit, img_url,market):
             "name": name,
             "current_price": price,
             "unit": unit,
+            "quantity": quantity,
             "image_url": img_url,
             "market": market,
             "yesterday_price": yesterday_price if yesterday_price else price,
