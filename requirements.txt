@@ -1,4 +1,4 @@
 selenium
 supabase
-pinecone-client
+pinecone
 sentence-transformers
