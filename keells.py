@@ -43,7 +43,7 @@ def scrape(category):
         print("Waiting for Ambarella product card to load...")
         ambarella_element = wait.until(
             EC.presence_of_element_located(
-                (By.XPATH, "//div[contains(@class, 'product-card-nameV2') and contains(text(), 'Ambarella')]")
+                (By.XPATH, "//div[contains(@class, 'product-card-nameV2')]")
             )
         )
         print("Ambarella card loaded.")
@@ -135,7 +135,7 @@ def scrape(category):
     finally:
         with open('keells_vegetables.csv', mode='a+', newline='', encoding='utf-8') as file:
             # Define the column headers based on our dictionary keys
-            writer = csv.DictWriter(file, fieldnames=["name", "price", "image_url"])
+            writer = csv.DictWriter(file, fieldnames=["category","name", "price", "image_url"])
             
             # Write the headers to the first row
             writer.writeheader()
