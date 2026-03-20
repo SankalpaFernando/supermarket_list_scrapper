@@ -1,0 +1,4 @@
+selenium
+supabase
+pinecone-client
+sentence-transformers
