@@ -145,23 +145,44 @@ def scrape(category):
                 print("\nNo more pages found. Scraping complete!")
                 break
         print("\nExtraction complete!")
+        return True
             
     except Exception as e:
-        print(f"An error occurred: {e}")
+        try:
+            # Check if the "Your session expired!" text is present
+            session_expired = driver.find_elements(By.XPATH, "//h5[contains(text(), 'Your session expired!')]")
+            if session_expired:
+                print("\n⚠️ Session Expired popup detected!")
+                # Find and click the Ok button
+                ok_button = driver.find_element(By.XPATH, "//button[normalize-space()='Ok']")
+                ok_button.click()
+                print("Clicked 'Ok'. Clearing session and returning false to trigger a restart...")
+                time.sleep(2) # Give the modal a second to disappear
+                return False # Returning False tells the main loop to retry
+        except Exception as modal_error:
+            print("Tried to close the session popup but failed:", modal_error)
+        
+        print(f"\nAn error occurred (not related to session expiry): {e}")
+        return False # Return False so it can be retried anyway
     finally:
-        # with open('keells_vegetables.csv', mode='a+', newline='', encoding='utf-8') as file:
-        #     # Define the column headers based on our dictionary keys
-        #     writer = csv.DictWriter(file, fieldnames=["category","name", "price", "image_url"])
-            
-        #     # Write the headers to the first row
-        #     writer.writeheader()
-            
-        #     # Write all the scraped data
-        #     writer.writerows(extracted_products)
             
             
         print("Successfully saved to 'keells_vegetables.csv'!")
 
 
 for category in categories:
-    scrape(category)
+    max_retries = 3
+    for attempt in range(max_retries):
+        print(f"\n--- Starting {category} (Attempt {attempt + 1}/{max_retries}) ---")
+        success = scrape(category)
+        
+        if success:
+            print(f"Successfully scraped {category}!")
+            break # Break out of the retry loop and move to the next category
+        else:
+            print(f"Failed to scrape {category}. Retrying in 3 seconds...")
+            time.sleep(3)
+            
+    # Optional: Write a fallback if it fails 3 times
+    if not success:
+        print(f"Skipping {category} after {max_retries} failed attempts.")

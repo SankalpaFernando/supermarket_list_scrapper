@@ -1,8 +1,14 @@
 from conn import model,index
+import re
 
 def sync_to_cloud(category, name, price, unit, img_url,market):
     # Create a unique ID
     prod_id = f"{category.lower().replace(' ', '-')}-{name.lower().replace(' ', '-')}"
+
+    prod_id = prod_id.encode("ascii", "ignore").decode("ascii")
+    
+    # Also good practice to remove any other weird symbols using Regex
+    prod_id = re.sub(r'[^a-zA-Z0-9-]', '', prod_id)
 
     vector = model.encode(f"{name} {category}").tolist()
 
