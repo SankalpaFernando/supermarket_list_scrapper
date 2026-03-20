@@ -37,7 +37,7 @@ def scrape_cargills():
         print(f"Found {len(category_urls)} categories. Starting extraction...\n")
         
         # Prepare CSV file
-        filename = "cargills_products.csv"
+        filename = "cargills_products_02.csv"
         with open(filename, 'w', newline='', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=["Category", "Product Name", "Price", "Image URL"])
             writer.writeheader()

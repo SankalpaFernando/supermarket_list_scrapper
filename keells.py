@@ -6,11 +6,15 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
 import csv
-
+from sync import sync_to_cloud
+import re
 # Set up Chrome options to keep the browser open
 chrome_options = Options()
 chrome_options.add_experimental_option("detach", True)
-
+chrome_options.add_argument("--headless=new") # Run without a window
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--window-size=1920,1080")
 driver = webdriver.Chrome(options=chrome_options)
 
 
@@ -101,7 +105,19 @@ def scrape(category):
                         "price": price,
                         "image_url": img_url
                     }
+                    price_str = price
                     extracted_products.append(product_data)
+                    
+                    numeric_part = re.search(r"([\d,]+\.?\d*)", price_str).group(1)
+
+                    # 2. Convert to a clean integer string (removing .00 and commas if they exist)
+                    price = str(int(float(numeric_part.replace(',', ''))))
+
+                    # 3. Extract the unit
+                    # This takes everything after the "/"
+                    unit = price_str.split("/")[-1].strip()
+
+                    sync_to_cloud(category,name,price,unit,img_url,"keells")
                     
                     # Print as we go
                     print(f"Extracted: {name} | {price}")
@@ -109,7 +125,7 @@ def scrape(category):
                 except Exception as e:
                     # If one card is missing a piece of data, we catch the error here 
                     # so it skips that specific card instead of crashing the whole script
-                    print(f"Skipped a card due to missing data.")
+                    print(f"Skipped a card due to missing data.",e)
 
             try:
                 next_button = next_button = driver.find_element(By.XPATH, "//button[contains(@class, 'page-number-button-arrow') and .//img[contains(@src, 'Right')]]")
@@ -133,15 +149,16 @@ def scrape(category):
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        with open('keells_vegetables.csv', mode='a+', newline='', encoding='utf-8') as file:
-            # Define the column headers based on our dictionary keys
-            writer = csv.DictWriter(file, fieldnames=["category","name", "price", "image_url"])
+        # with open('keells_vegetables.csv', mode='a+', newline='', encoding='utf-8') as file:
+        #     # Define the column headers based on our dictionary keys
+        #     writer = csv.DictWriter(file, fieldnames=["category","name", "price", "image_url"])
             
-            # Write the headers to the first row
-            writer.writeheader()
+        #     # Write the headers to the first row
+        #     writer.writeheader()
             
-            # Write all the scraped data
-            writer.writerows(extracted_products)
+        #     # Write all the scraped data
+        #     writer.writerows(extracted_products)
+            
             
         print("Successfully saved to 'keells_vegetables.csv'!")
 

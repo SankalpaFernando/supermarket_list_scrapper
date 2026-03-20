@@ -19,6 +19,6 @@ def search_products(user_query, min_price=None, max_price=None):
     return results['matches']
 
 
-matches = search_products("chocolate drink", max_price=500)
+matches = search_products("coffee drink", max_price=500)
 
 print(matches)
