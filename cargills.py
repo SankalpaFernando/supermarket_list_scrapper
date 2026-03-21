@@ -136,7 +136,5 @@ def scrape_cargills():
     finally:
         driver.quit()
         print(f"\nScraping complete! Total products scraped across all categories: {total_products_scraped}")
-        print(f"Data saved to {filename}")
-
 if __name__ == "__main__":
     scrape_cargills()
