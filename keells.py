@@ -171,7 +171,7 @@ def scrape(category):
 
 
 for category in categories:
-    max_retries = 3
+    max_retries = 4
     for attempt in range(max_retries):
         print(f"\n--- Starting {category} (Attempt {attempt + 1}/{max_retries}) ---")
         success = scrape(category)
