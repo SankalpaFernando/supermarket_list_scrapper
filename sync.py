@@ -1,6 +1,6 @@
-from conn import model,index
+from conn import model,index,supabase
 import re
-
+from datetime import date
 def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
     # Create a unique ID
     prod_id = f"{category.lower().replace(' ', '-')}-{name.lower().replace(' ', '-')}-{market}"
@@ -34,6 +34,12 @@ def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
             "yesterday_price": yesterday_price if yesterday_price else price,
         }
     }])
+
+    product_data = {"prod_id":prod_id,"price":price,"date":date.today()}
+
+
+    supabase.table("products_history").insert(product_data).execute()
+
     
     print(f"Synced {name} to both databases.")
 

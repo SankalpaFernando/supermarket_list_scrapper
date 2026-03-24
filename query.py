@@ -11,7 +11,7 @@ def search_products(user_query, min_price=None, max_price=None):
     # 3. Query Pinecone
     results = index.query(
         vector=query_vector,
-        top_k=5,
+        top_k=10,
         filter=metadata_filter if metadata_filter else None,
         include_metadata=True
     )
@@ -19,6 +19,6 @@ def search_products(user_query, min_price=None, max_price=None):
     return results['matches']
 
 
-matches = search_products("coffee drink", max_price=500)
+matches = search_products("Basmathi", max_price=500)
 
 print(matches)

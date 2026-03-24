@@ -32,4 +32,7 @@ jobs:
       - name: Run Scraper (${{ matrix.script }})
         env:
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL}}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
         run: python ${{ matrix.script }}
