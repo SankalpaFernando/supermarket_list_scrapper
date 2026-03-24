@@ -2,4 +2,4 @@ selenium
 supabase
 pinecone
 sentence-transformers
-supabase
+dotenv
