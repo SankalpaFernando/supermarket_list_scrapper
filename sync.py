@@ -38,8 +38,9 @@ def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
     product_data = {"prod_id":prod_id,"price":price,"date":date.today().isoformat()}
 
 
-    supabase.table("products_history").upsert(product_data, on_conflict=["prod_id", "date"]).execute()
-
+    supabase.table("products_history").insert(
+        product_data
+    ).execute()
     
     print(f"Synced {name} to both databases.")
 
