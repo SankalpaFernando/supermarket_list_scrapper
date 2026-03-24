@@ -7,6 +7,7 @@ import time
 from sync import sync_to_cloud
 import re
 
+
 def scrape_cargills():
     options = Options()
     options.add_argument("--start-maximized") 
@@ -101,10 +102,8 @@ def scrape_cargills():
                             quantity = raw_text
                         
                         products_data.append({
-                            "Category": category_name,
-                            "Product Name": name,
-                            "Price": price,
-                            "Image URL": img_url
+                            "name": name,
+                            "price": price,
                         })
 
                         sync_to_cloud(category_name,name,price,unit,quantity,img_url,"cargills")
