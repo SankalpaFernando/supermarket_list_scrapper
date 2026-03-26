@@ -26,12 +26,10 @@ def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
         "values": vector,
         "metadata": {
             "name": name,
-            "current_price": price,
             "unit": unit,
             "quantity": quantity,
             "image_url": img_url,
-            "market": market,
-            "yesterday_price": yesterday_price if yesterday_price else price,
+            "market": market       
         }
     }])
 
