@@ -29,8 +29,7 @@ def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
             "unit": unit,
             "quantity": quantity,
             "image_url": img_url,
-            "market": market       
-        }
+            "market": market,        }
     }])
 
     product_data = {"prod_id":prod_id,"price":price,"date":date.today().isoformat()}
