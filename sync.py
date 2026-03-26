@@ -14,7 +14,7 @@ def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
         vector = model.encode(f"{name} {category}").tolist()
 
         if market=="cargills":
-            price = float(price.split()[1])
+            price = float(''.join(price.split()[1].split(',')))
 
         yesterday_price = None
         try:
