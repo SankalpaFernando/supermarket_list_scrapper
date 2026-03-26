@@ -3,42 +3,51 @@ import re
 from datetime import date
 def sync_to_cloud(category, name, price, unit,quantity, img_url,market):
     # Create a unique ID
-    prod_id = f"{category.lower().replace(' ', '-')}-{name.lower().replace(' ', '-')}-{market}"
+   try:
+        prod_id = f"{category.lower().replace(' ', '-')}-{name.lower().replace(' ', '-')}-{market}"
 
-    prod_id = prod_id.encode("ascii", "ignore").decode("ascii")
-    
-    # Also good practice to remove any other weird symbols using Regex
-    prod_id = re.sub(r'[^a-zA-Z0-9-]', '', prod_id)
+        prod_id = prod_id.encode("ascii", "ignore").decode("ascii")
+        
+        # Also good practice to remove any other weird symbols using Regex
+        prod_id = re.sub(r'[^a-zA-Z0-9-]', '', prod_id)
 
-    vector = model.encode(f"{name} {category}").tolist()
+        vector = model.encode(f"{name} {category}").tolist()
 
-    yesterday_price = None
-    try:
-        existing_data = index.fetch(ids=[prod_id])
-        if prod_id in existing_data['vectors']:
-            # Move the old "current" to "yesterday"
-            yesterday_price = existing_data['vectors'][prod_id]['metadata'].get('current_price')
-    except Exception as e:
-        print(f"Could not fetch old data for {name}: {e}")
-    
-    index.upsert(vectors=[{
-        "id": prod_id,
-        "values": vector,
-        "metadata": {
-            "name": name,
-            "unit": unit,
-            "quantity": quantity,
-            "image_url": img_url,
-            "market": market,        }
-    }])
+        if market=="cargills":
+            price = float(price.split()[1])
 
-    product_data = {"prod_id":prod_id,"price":price,"date":date.today().isoformat()}
+        yesterday_price = None
+        try:
+            existing_data = index.fetch(ids=[prod_id])
+            if prod_id in existing_data['vectors']:
+                # Move the old "current" to "yesterday"
+                yesterday_price = existing_data['vectors'][prod_id]['metadata'].get('current_price')
+        except Exception as e:
+            print(f"Could not fetch old data for {name}: {e}")
+        
+        index.upsert(vectors=[{
+            "id": prod_id,
+            "values": vector,
+            "metadata": {
+                "name": name,
+                "unit": unit,
+                "quantity": quantity,
+                "image_url": img_url,
+                "market": market,        }
+        }])
 
+        product_data = {"prod_id":prod_id,"price":price,"date":date.today().isoformat()}
 
-    supabase.table("products_history").insert(
-        product_data
-    ).execute()
-    
-    print(f"Synced {name} to both databases.")
+        print(product_data)
 
+        response = supabase.table("products_history").insert(
+            product_data
+        ).execute()
+
+        print(response)
+        
+        print(f"Synced {name} to both databases.")
+   except Exception as e:
+       print(e)
+      
 
